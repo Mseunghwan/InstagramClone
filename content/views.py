@@ -1,20 +1,38 @@
 import os
 from uuid import uuid4
-
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from Minstagram.settings import MEDIA_ROOT
 from user.models import User
-from .models import Feed
+from .models import Feed, Reply, Like, Bookmark
 #.은 현 폴더에서, models내 Feed 클래스를 사용한다는 것
 
 class Main(APIView):
     def get(self, request):
-        feed_list = Feed.objects.all().order_by('-id') #feed_list에 Feed에 있는 모든 데이터를 가져오겠다는 것
+        feed_object_list = Feed.objects.all().order_by('-id') #feed_list에 Feed에 있는 모든 데이터를 가져오겠다는 것
         # 위 같이 Feed.objects.all()과 같은 라인이 쿼리셋 역할을 한다. 즉 sql쿼리 문에서 select * from content_feed와 같은 동작을 한다
+        feed_list = []
+        for feed in feed_object_list:
+            user = User.objects.filter(email=feed.email).first()
+            reply_obejct_list = Reply.objects.filter(feed_id=feed.id)
+            reply_list = []
+            for reply in reply_obejct_list:
+                user = User.objects.filter(email=reply.email).first()
+                reply_list.append(dict(
+                    reply_content=reply.reply_content,
+                    nickname=user.nickname
+                )) # 댓글 목록들 추가
 
+            feed_list.append(dict(
+                            id=feed.id,
+                            image=feed.image,
+                            content=feed.content,
+                            like_count=feed.like_count,
+                            profile_image=user.profile_image,
+                            nickname=user.nickname,
+                            reply_list=reply_list
+                                  ))
         email = request.session.get('email', None)
 
         if email is None:
@@ -42,10 +60,9 @@ class UploadFeed(APIView):
         # 이렇게 저장된 경로를 담아주기 - 이미지에
         image = uuid_name
         content = request.data.get('content')
-        user_id = request.data.get('user_id')
-        profile_image = request.data.get('profile_image')
+        email = request.session.get('email', None)
 
-        Feed.objects.create(image=image, content=content, user_id=user_id, profile_image=profile_image, like_count=0)
+        Feed.objects.create(image=image, content=content, email=email, like_count=0)
 
         return Response(status=200) #http response -- http:200(=success를 의미)
 
@@ -62,3 +79,13 @@ class Profile(APIView):
             return render(request, "user/login.html")
 
         return render(request, 'content/profile.html', context=dict(user=user))
+
+class UploadReply(APIView):
+    def post(self, request):
+        feed_id = request.data.get('feed_id', None)
+        reply_content = request.data.get('reply_content', None)
+        email = request.session.get('email', None)
+
+        Reply.objects.create(feed_id=feed_id, reply_content=reply_content, email=email)
+
+        return Response(status=200)

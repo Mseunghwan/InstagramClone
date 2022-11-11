@@ -74,13 +74,13 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light" style="position: fixed; width:100%; z-index: 999;">
     <!--flex의 space-between 활용해서, 또 밑으로 새지 않게 nowrap, 반응형이 아니어도 되기에 최소 화면크기를 1000픽셀 -->
     <div class="container-fluid" style="justify-content: space-between; flex-wrap: nowrap; min-width: 1000px"/>
-    <a class="navbar-brand" href="main">
+    <a class="navbar-brand" href="/main">
         <img style="height: 30px; object-fit: contain"
              src="https://www.instagram.com/static/images/web/mobile_nav_type_logo-2x.png/1b47f9d0e595.png">
     </a>
     <input class="form-control" style="width: 200px" type="search" placeholder="Search" aria-label="Search">
     <div style="display:flex;">
-        <a style="color:black;" href="main"><span class="material-icons" style="padding-right: 10px">home</span></a>
+        <a style="color:black;" href="/main"><span class="material-icons" style="padding-right: 10px">home</span></a>
         <span id="nav_bar_add_box" class="material-icons-outlined" style="padding-right: 10px">add_box</span>
         <div class="dropdown">
             <a id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -110,7 +110,7 @@
                              src="{% get_media_prefix %}{{ user.profile_image }}">
                     </div>
                     <div>
-                        {{ feed.user_id }}
+                        {{ feed.nickname }}
                     </div>
                 </div>
 
@@ -129,12 +129,22 @@
                 <div style="margin:0 20px; text-align: left; font-size: 14px">누구 <b>외 {{ feed.like_count }}명</b>이 좋아합니다
                 </div>
                 <div style="margin:0 20px; text-align: left; font-size: 16px">
-                    <b>{{ feed.user_id }}</b> {{ feed.content }}</div>
-                <div style="margin:0 20px; text-align: left; font-size: 14px"><b>준영</b> 와 이 시국에 저길가네;</div>
-                <div style="margin:0 20px; text-align: left; font-size: 14px"><b>민수</b> 잘 놀다와</div>
-                <div style="border: solid 1px gray"><input style="box-shadow: none; border:none; outline: none;"
+                    <b>{{ feed.nickname }}</b> {{ feed.content }}</div>
+            <div id="reply_list_{{ feed.id }}">
+                {% for reply in feed.reply_list %}
+                    <div style="margin:0 20px; text-align: left; font-size: 14px"><b>{{ reply.nickname }}</b>{{ reply.reply_content }}</div>
+                {% endfor %}
+            </div>
+                <div style="display:flex; flex-direction: row; align-items: center; border: solid 1px gray">
+                    <input id="reply_{{ feed.id }}"style="box-shadow: none; border:none; outline: none;"
                                                            type="text"
-                                                           class="form-control" placeholder="댓글 달기.."></div>
+                                                           class="form-control" placeholder="댓글 달기..">
+                <div feed_id="{{ feed.id }}" class="upload_reply" style="width:50px; color: cornflowerblue; font-weight: bold">
+                    게시
+                </div>
+                    <!-- input의 text space에 담긴 댓글을 가져오기 위해 id값을 reply_피드 아이디 값으로 설정한다.
+                         그리고 게시를 누르면 feed.id를 통해서 해당 id값을 가진 피드에 추가될 수 있게 upload 시켜준다.-->
+                </div>
             </div>
 
         {% endfor %}
@@ -293,6 +303,42 @@
 <!-- Jquery -->
 <script>
 
+    $('.upload_reply').click(function (event){
+        // console.log(event.target.attributes.getNamedItem('feed_id').value); // 누른 부분 attributes중 이름이 feed_id인 값을 가져옴
+        let feed_id = event.target.attributes.getNamedItem('feed_id').value;
+        let reply_id = 'reply_' + feed_id;
+        let reply_content = $('#'+reply_id).val() // 변수명 reply_id의 값 - 콘텐트 텍스트 가져오기
+        if(reply_content.length <= 0){
+            alert("댓글을 입력하세요");
+            return 0;
+        }
+
+        $.ajax({
+            url: "/content/reply",
+            data: {
+                feed_id : feed_id,
+                reply_content : reply_content
+            },
+            method: "POST",
+            // datatype : json을 없앤 이유는 그냥 폼 아이디로 부터 가져오는 것이므로,
+            success: function(data) {
+                console.log("성공");
+                alert("댓글이 게시되었습니다");
+                {#location.replace('/main');#}
+                $("#reply_list_"+feed_id).append("<div style='margin:0 20px; text-align: left; font-size: 14px'><b>{{ user.nickname }}</b> "+ reply_content + "</div>")
+            },
+            error: function(request, status, error){
+                console.log("에러");
+            },
+            complete: function(){
+                console.log("완료");
+                $('#'+reply_id).val('');
+            }
+        });
+
+
+    })
+
     $('.modal_close').click(function () {
         $('#first_modal').css({
             display: 'none'
@@ -309,8 +355,6 @@
         let file = files[0];
         let image = files[0].image;
         let content = $('#input_feed_content').val();
-        let user_id = "{{ user.nickname }}";
-        let profile_image = "{{ user.profile_image }}";
 // 우선 user_id와 profile_image는 우리가 html에 데이터로 불러온게 아닌 그냥 삽입해둔 상태라 다른 방식을 거치지 않고 그대로 작성해주었다.
 
         let fd = new FormData();
@@ -318,8 +362,6 @@
         fd.append('file', file);
         fd.append('image', image);
         fd.append('content', content);
-        fd.append('user_id', user_id);
-        fd.append('profile_image', profile_image);
         // form data에 데이터 추가
 
         $.ajax({
