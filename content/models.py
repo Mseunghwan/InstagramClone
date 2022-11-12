@@ -5,8 +5,6 @@ class Feed(models.Model):
     content = models.TextField() # 글내용
     image = models.TextField()   # 피드 이미지
     email = models.EmailField(default='')  # 이메일
-    like_count = models.TextField() # 좋아요 수
-
 class Like(models.Model):
     feed_id = models.IntegerField(default=0)
     email = models.EmailField(default='')

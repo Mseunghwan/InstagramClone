@@ -81,10 +81,10 @@
     <input class="form-control" style="width: 200px" type="search" placeholder="Search" aria-label="Search">
     <div style="display:flex;">
         <a style="color:black;" href="/main"><span class="material-icons" style="padding-right: 10px">home</span></a>
-        <span id="nav_bar_add_box" class="material-icons-outlined" style="padding-right: 10px">add_box</span>
+        <span id="nav_bar_add_box" class="material-icons-outlined" style="cursor:pointer; padding-right: 10px">add_box</span>
         <div class="dropdown">
             <a id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <div class="box" style="width: 25px; height: 25px">
+                <div class="box" style="width: 25px; height: 25px; cursor:pointer;">
                     <img class="profile"
                          src="{% get_media_prefix %}{{ user.profile_image }}">
                 </div>
@@ -118,12 +118,10 @@
                 </div>
                 <div style="margin:0 20px; display: flex; flex-direction: row; justify-content: space-between">
                     <div>
-                        <span class="material-icons-outlined">favorite_border</span>
-                        <span class="material-icons-outlined">mode_comment</span>
-                        <span class="material-icons-outlined">send</span>
-                    </div>
+                    <span id="favorite_{{ feed.id }}" feed_id = "{{ feed.id }}" style="color:red; cursor:pointer;" class="favorite material-icons-outlined">{% if feed.is_liked %}favorite{% else %}favorite_border{% endif %}</span>
+                        </div>
                     <div>
-                        <span class="material-icons-outlined">bookmark_border</span>
+                        <span id="bookmark_{{ feed.id }}" feed_id = "{{ feed.id }}" style="cursor:pointer;" class="bookmark material-icons-outlined">{% if feed.is_marked %}bookmark{% else %}bookmark_border{% endif %}</span>
                     </div>
                 </div>
                 <div style="margin:0 20px; text-align: left; font-size: 14px">누구 <b>외 {{ feed.like_count }}명</b>이 좋아합니다
@@ -263,7 +261,7 @@
                 새 이미지 업로드
             </div>
             <div>
-                <span class="modal_close material-icons">close</span>
+                <span style="cursor:pointer;" class="modal_close material-icons">close</span>
             </div>
         </div>
         <div class="img_upload_space" style="border-top: solid 1px gray; margin-top: 10px; width:778px; height: 540px;">
@@ -281,7 +279,7 @@
                 새 이미지 업로드
             </div>
             <div>
-                <span class="modal_close material-icons">close</span>
+                <span style="cursor:pointer;" class="modal_close material-icons">close</span>
             </div>
         </div>
         <div style="border-top: solid 1px gray; margin-top:10px; display: flex; flex-direction: row;">
@@ -302,6 +300,71 @@
 
 <!-- Jquery -->
 <script>
+
+    $('.bookmark').click(function (event){
+        let feed_id = event.target.attributes.getNamedItem('feed_id').value;
+        let bookmark_id = event.target.id;
+        let bookmark_text = $('#'+bookmark_id).html();
+
+        if (bookmark_text == "bookmark"){
+            $('#'+bookmark_id).html("bookmark_border");
+        } else {
+            $('#'+bookmark_id).html("bookmark");
+        }
+
+        $.ajax({
+            url: "/content/bookmark",
+            data: {
+                feed_id: feed_id,
+                bookmark_text: bookmark_text
+            },
+            method: "POST",
+            success: function(data) {
+                console.log("성공");
+                },
+            error: function(request, status, error){
+                console.log("에러");
+            },
+            complete: function(){
+                console.log("완료");
+            }
+        });
+
+
+    })
+
+    $('.favorite').click(function (event){
+        let feed_id = event.target.attributes.getNamedItem('feed_id').value;
+        let favorite_id = event.target.id;
+        let favorite_text = $('#'+favorite_id).html();
+
+        if (favorite_text == "favorite"){
+            $('#'+favorite_id).html("favorite_border");
+        } else {
+            $('#'+favorite_id).html("favorite");
+        }
+
+        $.ajax({
+            url: "/content/like",
+            data: {
+                feed_id : feed_id,
+                favorite_text : favorite_text
+            },
+            method: "POST",
+            // datatype : json을 없앤 이유는 그냥 폼 아이디로 부터 가져오는 것이므로,
+            success: function(data) {
+                console.log("성공");
+                },
+            error: function(request, status, error){
+                console.log("에러");
+            },
+            complete: function(){
+                console.log("완료");
+            }
+        });
+
+
+    })
 
     $('.upload_reply').click(function (event){
         // console.log(event.target.attributes.getNamedItem('feed_id').value); // 누른 부분 attributes중 이름이 feed_id인 값을 가져옴
